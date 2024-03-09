@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jogo da Velha com Bot</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #background-animation {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      background: linear-gradient(to bottom, #5cb8ff, #ffffff, #ff5c5c);
+      background-size: 200% 200%;
+      animation: gradientAnimation 15s ease infinite;
+    }
+
+    @keyframes gradientAnimation {
+      0% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+
+    #player-name {
+      font-size: 36px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: #2196F3; /* Blue */
+      text-shadow: 2px 2px 2px rgba(33, 150, 243, 0.5);
+    }
+
+    #board {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      gap: 5px;
+      background-color: #fff;
+      border: 2px solid #ccc;
+      padding: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+    }
+
+    .cell {
+      width: 100px;
+      height: 100px;
+      text-align: center;
+      font-size: 24px;
+      cursor: pointer;
+      background-color: #eee;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      transition: background-color 0.3s;
+    }
+
+    .cell:hover {
+      background-color: #ddd;
+    }
+
+    .cell.x {
+      color: #2196F3; /* Blue */
+    }
+
+    .cell.o {
+      color: #F44336; /* Red */
+    }
+
+    #history-btn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #83CEEB ; /* azul */
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      border-radius: 5px;
+      transition: background-color 0.3s;
+    }
+
+    #history-btn:hover {
+      background-color: #87CEEB; /* Darker Green */
+    }
+
+    #history-container {
+      display: none;
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    #history h2 {
+      font-size: 18px;
+      margin-bottom: 5px;
+      color: #333;
+    }
+
+    #history p {
+      margin: 5px 0;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+<div id="background-animation"></div>
+<div id="player-name"></div>
+<div id="board"></div>
+<button id="history-btn" onclick="toggleHistory()">Histórico</button>
+<div id="history-container">
+  <h2>Histórico de Jogos:</h2>
+  <div id="history"></div>
+</div>
+
+<script>
+  const playerName = prompt('Como podemos chamar você?');
+  document.getElementById('player-name').textContent = `${playerName}`;
+
+  const board = document.getElementById('board');
+  const historyBtn = document.getElementById('history-btn');
+  const historyContainer = document.getElementById('history-container');
+  const historyContent = document.getElementById('history');
+  let currentPlayer = 'X';
+  let botName = 'Bot';
+  let gameHistory = [];
+
+  function toggleHistory() {
+    if (historyContainer.style.display === 'none') {
+      historyContainer.style.display = 'block';
+      historyBtn.textContent = 'Esconder Histórico';
+      showHistory();
+    } else {
+      historyContainer.style.display = 'none';
+      historyBtn.textContent = 'Histórico';
+    }
+  }
+
+  function showHistory() {
+    historyContent.innerHTML = '';
+    gameHistory.forEach(result => {
+      const resultElement = document.createElement('p');
+      resultElement.innerHTML = result;
+      historyContent.appendChild(resultElement);
+    });
+  }
+
+  function makeBotMove() {
+    const emptyCells = Array.from(document.getElementsByClassName('cell')).filter(cell => !cell.textContent);
+    if (emptyCells.length > 0) {
+      const randomIndex = Math.floor(Math.random() * emptyCells.length);
+      const botMove = emptyCells[randomIndex];
+      setTimeout(() => {
+        botMove.textContent = currentPlayer;
+        botMove.classList.add(currentPlayer.toLowerCase());
+        if (checkWinner()) {
+          gameHistory.push(`🤖 ${botName} venceu! 🤖`);
+          resetBoard();
+        } else if (isBoardFull()) {
+          gameHistory.push('Empate! 😐');
+          resetBoard();
+        } else {
+          currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+        }
+      }, 500); // Delay for a better user experience
+    } else {
+      // No empty cells left, the game is a tie
+      gameHistory.push('Empate! 😐');
+      resetBoard();
+    }
+  }
+
+  function checkWinner() {
+    const cells = Array.from(document.getElementsByClassName('cell'));
+    const winningCombinations = [
+      [0, 1, 2], [3, 4, 5], [6, 7, 8],
+      [0, 3, 6], [1, 4, 7], [2, 5, 8],
+      [0, 4, 8], [2, 4, 6]
+    ];
+
+    const winnerCombination = winningCombinations.find(combination => {
+      const [a, b, c] = combination;
+      return (
+        cells[a].textContent &&
+        cells[a].textContent === cells[b].textContent &&
+        cells[a].textContent === cells[c].textContent
+      );
+    });
+
+    if (winnerCombination) {
+      return true;
+    }
+
+    return false;
+  }
+
+  function isBoardFull() {
+    const cells = Array.from(document.getElementsByClassName('cell'));
+    return cells.every(cell => cell.textContent);
+  }
+
+  function resetBoard() {
+    const cells = Array.from(document.getElementsByClassName('cell'));
+    cells.forEach(cell => {
+      cell.textContent = '';
+      cell.classList.remove('x', 'o');});
+    currentPlayer = 'X';
+    makeBotMove();
+  }
+
+  function handleCellClick(event) {
+    const cell = event.target;
+    if (!cell.textContent) {
+      cell.textContent = currentPlayer;
+      cell.classList.add(currentPlayer.toLowerCase());
+      if (checkWinner()) {
+        gameHistory.push(`🎉 ${playerName} venceu! 🎉`);
+        resetBoard();
+      } else if (isBoardFull()) {
+        gameHistory.push('Empate! 😐');
+        resetBoard();
+      } else {
+        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+        makeBotMove();
+      }
+    }
+  }
+
+  function createBoard() {
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        const cell = document.createElement('div');
+        cell.classList.add('cell');
+        cell.dataset.row = i;
+        cell.dataset.col = j;
+        cell.addEventListener('click', handleCellClick);
+        board.appendChild(cell);
+      }
+    }
+    makeBotMove();
+  }
+
+  function toggleHistory() {
+    if (historyContainer.style.display === 'none') {
+      historyContainer.style.display = 'block';
+      historyBtn.textContent = 'Esconder Histórico';
+      showHistory();
+    } else {
+      historyContainer.style.display = 'none';
+      historyBtn.textContent = 'Histórico';
+    }
+  }
+
+  function showHistory() {
+    historyContent.innerHTML = '';
+    gameHistory.forEach(result => {
+      const resultElement = document.createElement('p');
+      resultElement.innerHTML = result;
+      historyContent.appendChild(resultElement);
+    });
+  }
+
+  createBoard();
+</script>
+
+</body>
+</html>
